@@ -3,11 +3,15 @@
 ## 11/14/22
 - Some useful refresher on the concept:
     https://www.youtube.com/watch?v=Hk5ixO7Tb24
+
     https://www.youtube.com/watch?v=hg24ZIX06Tk
+    
     https://www.youtube.com/watch?v=wYd4Nf5D0yk
 
 - An example paper of Hi-C and TADs and linked data
+    
     https://www.nature.com/articles/nature14222
+    
     https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE52457
 
 Question remain:
