@@ -18,3 +18,6 @@ Question remain:
 - Hi-C seems like to be a special kind of sequencing involving digestion. So need to be careful when selecting the single-cell dataset for the final project.
 - Need to decide a species. Could be human or Mouse (TAD boundaries conserve between species.)
     - from there, we will need to contact the post-doc in Leonord's lab for the isolation scores, which will be used as a proxy for TADs boundaries.
+
+
+Google docs: https://docs.google.com/document/d/1il7-IZ_bBr1wKgCmo7JH9YPm1dYN7Dg2o-prv8JmNgo/edit
