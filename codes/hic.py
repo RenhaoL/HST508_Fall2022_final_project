@@ -44,7 +44,7 @@ def chromosome_gene_dict(gloc_data):
     """
     return dictionary where keys are chromosomes and values are gene lists
     """
-    chromosomes = set(gloc_filtered.seqname)
+    chromosomes = set(gloc_data.seqname)
     cg_dict = dict(zip(chromosomes, [None]*len(chromosomes)))
     for chrom in chromosomes:
         gloc = gloc_data[gloc_data.seqname==chrom]
@@ -138,7 +138,7 @@ def main():
     norm_tpm = log2norm_tpm(tpm_data)
     # make dictionaries
     cg_dict = chromosome_gene_dict(gene_loc_data)
-    tg_dict = tad_gene_dict(tad_locs,gene_loc_data)
+    tg_dict = tad_gene_dict(tad_data,gene_loc_data)
     chromosome_list = ['chr'+str(i+1) for i in range(19)]
     for chromosome in chromosome_list:
         tpm, gene_loc, tad = get_genes_from_chromosome(chromosome,norm_tpm,tad_data,gene_loc_data)
