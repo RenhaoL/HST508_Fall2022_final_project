@@ -104,9 +104,6 @@ def slide_boundary(chr, start, end, num_iter=5, x=0.2):
         start, end = new_start, new_end
     return new_boundaries
 
-def calc_tad_coexp():
-    return None
-
 def main():
     # read in data
     tpm_data, gene_loc_data, tad_data = extract_data(args.data_path, args.gene_loc_path, args.tad_path)
@@ -118,6 +115,8 @@ def main():
     for chromosome in chromosome_list:
         tpm, gene_loc = get_genes_from_chromosome(chromosome,norm_tpm,gene_loc_data)
         # do stuff
+        corr_df = tpm.transpose().corr() # correlation dataframe 
+        avg_corr = corr_df.mean().mean()
 
 if __name__ == "__main__":
     main()
