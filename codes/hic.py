@@ -38,9 +38,32 @@ def extract_data(data_path,gene_loc_path,tad_path,excl_chrom=['chrM','chrX','chr
     gene_list = set(sc_df_filtered.index).intersection(gloc_filtered.index)
     sc_df_filtered = sc_df_filtered.loc[gene_list]
     gloc_filtered = gloc_filtered.loc[gene_list]
-    # get rid of tads with no genes
-    
     return sc_df_filtered, gloc_filtered, tad_filtered
+
+def chromosome_gene_dict(gloc_data):
+    """
+    return dictionary where keys are chromosomes and values are gene lists
+    """
+    chromosomes = set(gloc_filtered.seqname)
+    cg_dict = dict(zip(chromosomes, [None]*len(chromosomes)))
+    for chr in chromosomes:
+        gloc = gloc_data[gloc_data.seqname==chr]
+        cg_dict[chr] = list(gloc.index)
+    return cg_dict
+
+def tad_gene_dict():
+    
+    return tg_dict
+
+def remove_geneless_tads(cg_dict, gloc_data, tad_data):
+    # get rid of tads with no genes
+    rm_tad_idxs = []
+    for i range(len(tad_data)):
+        chr = tad_data[i]['chrom']
+        start = tad_data[i]['start']
+        end = tad_data[i]['end']
+        genes = cg_dict[chr]
+
 
 def log2norm_tpm(tpm_data):
     """
@@ -110,10 +133,11 @@ def main():
     
     # normalize tpm data
     norm_tpm = log2norm_tpm(tpm_data)
-
+    # make dictioanry of chromosomes to genes
+    cg_dict = chromosome_gene_dict(gene_loc_data)
     chromosome_list = ['chr'+str(i+1) for i in range(19)]
     for chromosome in chromosome_list:
-        tpm, gene_loc = get_genes_from_chromosome(chromosome,norm_tpm,gene_loc_data)
+        tpm, gene_loc, tad = get_genes_from_chromosome(chromosome,norm_tpm,tad_data,gene_loc_data)
         # do stuff
 
 if __name__ == "__main__":
