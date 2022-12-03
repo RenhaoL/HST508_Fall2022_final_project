@@ -44,7 +44,7 @@ def chromosome_gene_dict(gloc_data):
     """
     return dictionary where keys are chromosomes and values are gene lists
     """
-    chromosomes = set(gloc_filtered.seqname)
+    chromosomes = set(gloc_data.seqname)
     cg_dict = dict(zip(chromosomes, [None]*len(chromosomes)))
     for chrom in chromosomes:
         gloc = gloc_data[gloc_data.seqname==chrom]
@@ -59,13 +59,13 @@ def get_genes_in_interval(chrom,start,end,gloc):
     gloc_chr = gloc_chr[(gloc_chr['start'] >= start) & (gloc_chr['end'] < end)]
     return list(gloc_chr.index)
 
-def tad_gene_dict(tad_locs,gloc,filter_empty=True):
+def tad_gene_dict(tad_locs,gloc,filter_bar = 3):
     tg_dict = dict(zip(list(range(len(tad_locs))),[[]]*len(tad_locs)))
     for i in range(len(tad_locs)):
         data = tad_locs.loc[i]
         tg_dict[i] = get_genes_in_interval(data['chrom'],data['start'],data['end'],gloc)
-    if filter_empty:
-        tg_dict = {k:v for k,v in tg_dict.items() if v}
+    if filter_bar > 0:
+        tg_dict = {k:v for k,v in tg_dict.items() if len(v)>=filter_bar}
     return tg_dict
 
 def log2norm_tpm(tpm_data):
@@ -133,12 +133,12 @@ def slide_boundary(chr, start, end, num_iter=5, x=0.2):
 def main():
     # read in data
     tpm_data, gene_loc_data, tad_data = extract_data(args.data_path, args.gene_loc_path, args.tad_path)
-    
     # normalize tpm data
     norm_tpm = log2norm_tpm(tpm_data)
     # make dictionaries
     cg_dict = chromosome_gene_dict(gene_loc_data)
-    tg_dict = tad_gene_dict(tad_locs,gene_loc_data)
+    tg_dict = tad_gene_dict(tad_data,gene_loc_data)
+
     chromosome_list = ['chr'+str(i+1) for i in range(19)]
     for chromosome in chromosome_list:
         tpm, gene_loc, tad = get_genes_from_chromosome(chromosome,norm_tpm,tad_data,gene_loc_data)
