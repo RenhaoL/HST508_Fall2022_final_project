@@ -57,7 +57,7 @@ def get_genes_from_chromosome(chr_name,tpm_data,gloc_data):
 def slide_boundary(chr, start, end, num_iter=5, x=0.2):
     """
     Given a TAD boundary, shift the boundary left or right [num_iter] times with a step size of [x] * TAD size 
-    while retaining the size of the TAD. Return new boundaries.
+    while retaining the size of the TAD. Return a list of new boundaries.
     """
     def get_new_boundary(start, end, step_size, direction):
         new_boundaries = []
@@ -90,7 +90,6 @@ def slide_boundary(chr, start, end, num_iter=5, x=0.2):
     else:
         new_boundaries = get_new_boundary(start, end, step_size, np.random.randint(0,2))
     return new_boundaries
-
 
 def calc_tad_coexp():
     return None
