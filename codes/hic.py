@@ -54,19 +54,16 @@ def get_genes_from_chromosome(chr_name,tpm_data,gloc_data):
     genes = gloc_filtered.index
     return tpm_data.loc[genes]
 
-def get_chr_lengths(path_to_file="../data/chr_lengths"):
+def get_chr_length(chr, path_to_file="../data/chr_lengths"):
     """
-    Return a dictionary containing chromosomes and their lengths in bp.
+    Return the length of a chromosome.
     """
-    chr_lengths = {}
     infile = open(path_to_file)
     for line in infile:
         line = line.strip().split()
-        chr = line[0]
-        length = int(line[1])
-        chr_lengths[chr] = length
+        if chr == line[0]:
+            return int(line[1])
     infile.close()
-    return chr_lengths
 
 def slide_boundary(chr, start, end, num_iter=5, x=0.2):
     """
@@ -84,7 +81,7 @@ def slide_boundary(chr, start, end, num_iter=5, x=0.2):
             new_boundaries.append(new_boundary)
             start, end = new_start, new_end
         return new_boundaries
-    chr_length = get_chr_lengths()[chr]
+    chr_length = get_chr_length(chr)
     # set step size
     tad_length = end - start
     step_size = tad_length * x
