@@ -70,30 +70,28 @@ def slide_boundary(chr, start, end, num_iter=5, x=0.2):
     Given a TAD boundary, shift the boundary left or right [num_iter] times with a step size of [x] * TAD size 
     while retaining the size of the TAD. Return a list of new boundaries.
     """
-    def get_new_boundary(start, end, step_size, direction):
-        new_boundaries = []
-        for i in range(num_iter):
-            if direction == 1: # shift right
-                new_start, new_end = start + step_size, end + step_size
-            else: # shift left
-                new_start, new_end = start - step_size, end - step_size
-            new_boundary = (chr, new_start, new_end)
-            new_boundaries.append(new_boundary)
-            start, end = new_start, new_end
-        return new_boundaries
     chr_length = get_chr_length(chr)
     # set step size
     tad_length = end - start
     step_size = tad_length * x
     # TAD at start of chr -> shift right
     if start - (step_size * num_iter) < 0:
-        new_boundaries = get_new_boundary(start, end, step_size, 1)
+        direction = 1
     # TAD at end of chr -> shift left
     elif end + (step_size * num_iter) > chr_length:
-        new_boundaries = get_new_boundary(start, end, step_size, 0)
+        direction = 0
     # randomly shift left or right
     else:
-        new_boundaries = get_new_boundary(start, end, step_size, np.random.randint(0,2))
+        direction = np.random.randint(0,2)
+    new_boundaries = []
+    for i in range(num_iter):
+        if direction == 1: # shift right
+            new_start, new_end = start + step_size, end + step_size
+        else: # shift left
+            new_start, new_end = start - step_size, end - step_size
+        new_boundary = (chr, new_start, new_end)
+        new_boundaries.append(new_boundary)
+        start, end = new_start, new_end
     return new_boundaries
 
 def calc_tad_coexp():
