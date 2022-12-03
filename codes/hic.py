@@ -46,24 +46,27 @@ def chromosome_gene_dict(gloc_data):
     """
     chromosomes = set(gloc_filtered.seqname)
     cg_dict = dict(zip(chromosomes, [None]*len(chromosomes)))
-    for chr in chromosomes:
-        gloc = gloc_data[gloc_data.seqname==chr]
-        cg_dict[chr] = list(gloc.index)
+    for chrom in chromosomes:
+        gloc = gloc_data[gloc_data.seqname==chrom]
+        cg_dict[chrom] = list(gloc.index)
     return cg_dict
 
-def tad_gene_dict():
-    
+def get_genes_in_interval(chrom,start,end,gloc):
+    """
+    get genes in an interval on a chromosome
+    """
+    gloc_chr = gloc[gloc['seqname']==chrom]
+    gloc_chr = gloc_chr[(gloc_chr['start'] >= start) & (gloc_chr['end'] < end)]
+    return list(gloc_chr.index)
+
+def tad_gene_dict(tad_locs,gloc,filter_empty=True):
+    tg_dict = dict(zip(list(range(len(tad_locs))),[[]]*len(tad_locs)))
+    for i in range(len(tad_locs)):
+        data = tad_locs.loc[i]
+        tg_dict[i] = get_genes_in_interval(data['chrom'],data['start'],data['end'],gloc)
+    if filter_empty:
+        tg_dict = {k:v for k,v in tg_dict.items() if v}
     return tg_dict
-
-def remove_geneless_tads(cg_dict, gloc_data, tad_data):
-    # get rid of tads with no genes
-    rm_tad_idxs = []
-    for i range(len(tad_data)):
-        chr = tad_data[i]['chrom']
-        start = tad_data[i]['start']
-        end = tad_data[i]['end']
-        genes = cg_dict[chr]
-
 
 def log2norm_tpm(tpm_data):
     """
@@ -133,8 +136,9 @@ def main():
     
     # normalize tpm data
     norm_tpm = log2norm_tpm(tpm_data)
-    # make dictioanry of chromosomes to genes
+    # make dictionaries
     cg_dict = chromosome_gene_dict(gene_loc_data)
+    tg_dict = tad_gene_dict(tad_locs,gene_loc_data)
     chromosome_list = ['chr'+str(i+1) for i in range(19)]
     for chromosome in chromosome_list:
         tpm, gene_loc, tad = get_genes_from_chromosome(chromosome,norm_tpm,tad_data,gene_loc_data)
