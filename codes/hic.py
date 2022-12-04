@@ -134,18 +134,15 @@ def calc_tad_coexp(chr, start, end, gene_loc, tpm):
     """
     genes = get_genes_in_interval(chr, start, end, gene_loc)
     if len(genes) == 0:
-        return 0
+        return None, 0
     tpm_subset = tpm.loc[genes,:]
     corr_df = tpm_subset.transpose().corr()
     avg_corr = np.mean(corr_df.to_numpy())
     return corr_df, avg_corr
 
 def plot_corr_distance(distances, correlation):
-    """
-    plot correlation vs distance from TAD boundary
-    """
     plt.plot(distances, correlation)
-    plt.title("Avg pairwise correlation within region")
+    plt.title("Average pairwise correlation")
     plt.xlabel("Distance from TAD boundary in kb")
     plt.ylabel("Avg correlation")
     plt.show()
