@@ -59,7 +59,7 @@ def get_genes_in_interval(chrom,start,end,gloc):
     gloc_chr = gloc_chr[(gloc_chr['start'] >= start) & (gloc_chr['end'] < end)]
     return list(gloc_chr.index)
 
-def tad_gene_dict(tad_locs,gloc,filter_bar = 3):
+def tad_gene_dict(tad_locs,gloc,filter_bar=5):
     tg_dict = dict(zip(list(range(len(tad_locs))),[[]]*len(tad_locs)))
     for i in range(len(tad_locs)):
         data = tad_locs.loc[i]
@@ -104,31 +104,55 @@ def get_chr_lengths(path_to_file="../data/chr_lengths"):
 def slide_boundary(chr, start, end, num_iter=5, x=0.2):
     """
     shift a TAD boundary left or right [num_iter] times with a step size of [x] * TAD size 
-    while retaining the size of the TAD. return a list of new boundaries.
+    while retaining the size of the TAD. return a list of new boundaries and the
+    corresponding distances from the original TAD.
     """
     chr_length = get_chr_lengths()[chr]
     # set step size
     tad_length = end - start
     step_size = tad_length * x
-    # TAD at start of chr -> shift right
-    if start - (step_size * num_iter) < 0:
-        direction = 1
-    # TAD at end of chr -> shift left
-    elif end + (step_size * num_iter) > chr_length:
-        direction = 0
-    # randomly shift left or right
-    else:
-        direction = np.random.randint(0,2)
+    # default: shift right
+    direction = 1
+    # TAD at end: shift left
+    if end + (step_size * num_iter) > chr_length:
+        direction = -1
     new_boundaries = []
+    distances = []
+    step_size = direction * step_size
+    distance_from_origin = step_size
     for i in range(num_iter):
-        if direction == 1: # shift right
-            new_start, new_end = start + step_size, end + step_size
-        else: # shift left
-            new_start, new_end = start - step_size, end - step_size
-        new_boundary = (chr, new_start, new_end)
-        new_boundaries.append(new_boundary)
+        new_start, new_end = start + step_size, end + step_size
+        new_boundaries.append((chr, new_start, new_end))
+        distances.append(distance_from_origin)
         start, end = new_start, new_end
-    return new_boundaries
+        distance_from_origin += step_size
+    return new_boundaries, distances
+
+def calc_tad_coexp(chr, start, end, gene_loc, tpm):
+    """
+    calculate the average pairwise correlation coefficient for a given genomic region
+    """
+    genes = get_genes_in_interval(chr, start, end, gene_loc)
+    if len(genes) == 0:
+        return 0
+    tpm_subset = tpm.loc[genes,:]
+    corr_df = tpm_subset.transpose().corr()
+    avg_corr = np.mean(corr_df.to_numpy())
+    return corr_df, avg_corr
+
+def plot_corr_distance(distances, correlation):
+    """
+    plot correlation vs distance from TAD boundary
+    """
+    plt.plot(distances, correlation)
+    plt.title("Avg pairwise correlation within region")
+    plt.xlabel("Distance from TAD boundary in kb")
+    plt.ylabel("Avg correlation")
+    plt.show()
+
+def plot_corr_heatmap(corr_df):
+    sns.heatmap(corr_df)
+    plt.show()
 
 def main():
     # read in data
@@ -143,8 +167,21 @@ def main():
     for chromosome in chromosome_list:
         tpm, gene_loc, tad = get_genes_from_chromosome(chromosome,norm_tpm,tad_data,gene_loc_data)
         # do stuff
-        corr_df = tpm.transpose().corr() # correlation dataframe 
-        avg_corr = corr_df.mean().mean()
+        for t in tad.index:
+            if t not in tg_dict.keys():
+                continue
+            tad_chr, tad_start, tad_end = tad.loc[t,:]
+            tad_corr_df, tad_corr = calc_tad_coexp(tad_chr, tad_start, tad_end, gene_loc_data, tpm)
+            # plot_corr_heatmap(tad_corr_df)
+            new_boundaries, slide_distances = slide_boundary(tad_chr, tad_start, tad_end, 10, 0.1)
+            corr = [tad_corr]
+            distances = [0] + slide_distances
+            for new_chr, new_start, new_end in new_boundaries:
+                new_corr_df, new_corr = calc_tad_coexp(new_chr, new_start, new_end, gene_loc_data, tpm)
+                corr.append(new_corr)
+        #     plot_corr_distance(np.array(distances) / 1000 , corr)
+        #     break
+        # break
 
 if __name__ == "__main__":
     main()
