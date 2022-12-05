@@ -110,7 +110,7 @@ def slide_boundary(chr, start, end, num_iter=5, x=0.2):
     chr_length = get_chr_lengths()[chr]
     # set step size
     tad_length = end - start
-    step_size = tad_length * x
+    step_size = 5000 # tad_length * x
     # default: shift right
     direction = 1
     # TAD at end: shift left
@@ -170,7 +170,7 @@ def main():
             tad_chr, tad_start, tad_end = tad.loc[t,:]
             tad_corr_df, tad_corr = calc_tad_coexp(tad_chr, tad_start, tad_end, gene_loc_data, tpm)
             # plot_corr_heatmap(tad_corr_df)
-            new_boundaries, slide_distances = slide_boundary(tad_chr, tad_start, tad_end, 10, 0.1)
+            new_boundaries, slide_distances = slide_boundary(tad_chr, tad_start, tad_end, 20)
             corr = [tad_corr]
             distances = [0] + slide_distances
             for new_chr, new_start, new_end in new_boundaries:
