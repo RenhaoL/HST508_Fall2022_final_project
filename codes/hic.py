@@ -151,28 +151,28 @@ def plot_corr_heatmap(corr_df):
     sns.heatmap(corr_df)
     plt.show()
 
-def get_highly_correlated_genes(corr_df, percentile=90):
-    """
-    given a correlation dataframe, return a list of the most highly correlated gene pairs.
-    """
-    values = corr_df.to_numpy().flatten()
-    threshold = np.percentile(values, 90)
-    genes = corr_df.index
-    pairs = []
-    for i in range(len(genes)):
-        gene1 = genes[i]
-        for j in range(len(genes)):
-            gene2 = genes[j]
-            corr = corr_df.iloc[i,j]
-            if corr > threshold:
-                pairs.append((gene1, gene2))
-    return pairs
+# def get_highly_correlated_genes(corr_df, percentile=90):
+#     """
+#     given a correlation dataframe, return a list of the most highly correlated gene pairs.
+#     """
+#     values = corr_df.to_numpy().flatten()
+#     threshold = np.percentile(values, 90)
+#     genes = corr_df.index
+#     pairs = []
+#     for i in range(len(genes)):
+#         gene1 = genes[i]
+#         for j in range(len(genes)):
+#             gene2 = genes[j]
+#             corr = corr_df.iloc[i,j]
+#             if corr > threshold:
+#                 pairs.append((gene1, gene2))
+#     return pairs
 
-def genes_in_tad(gene_pair):
-    """
-    given a pair of genes, determine whether the genes are in the same TAD.
-    """
-    return None
+# def genes_in_tad(gene_pair):
+#     """
+#     given a pair of genes, determine whether the genes are in the same TAD.
+#     """
+#     return None
 
 def main():
     # read in data
@@ -202,15 +202,15 @@ def main():
                 corr.append(new_corr)
             # plot_corr_distance(np.array(distances) / 1000 , corr)
     
-    # analysis 2: are highly correlated genes in the same TAD?
-    # get correlation matrix of all genes
-    all_genes_corr_df = None
-    highly_correlated_genes = get_highly_correlated_genes(all_genes_corr_df)
-    pairs_in_tad = []
-    for pair in highly_correlated_genes:
-        if genes_in_tad(pair):
-            pairs_in_tad.append(pair)
-    # print frequency of pairs in the same TAD
+    # # analysis 2: are highly correlated genes in the same TAD?
+    # # get correlation matrix of all genes (genes * genes)
+    # all_genes_corr_df = None
+    # highly_correlated_genes = get_highly_correlated_genes(all_genes_corr_df)
+    # pairs_in_tad = []
+    # for pair in highly_correlated_genes:
+    #     if genes_in_tad(pair):
+    #         pairs_in_tad.append(pair)
+    # # print frequency of pairs in the same TAD
 
     # analysis 3: correlation as a function of distance between genes
 
