@@ -204,7 +204,8 @@ def main():
     
     # analysis 2: are highly correlated genes in the same TAD?
     # get correlation matrix of all genes
-    highly_correlated_genes = get_highly_correlated_genes()
+    all_genes_corr_df = None
+    highly_correlated_genes = get_highly_correlated_genes(all_genes_corr_df)
     pairs_in_tad = []
     for pair in highly_correlated_genes:
         if genes_in_tad(pair):
