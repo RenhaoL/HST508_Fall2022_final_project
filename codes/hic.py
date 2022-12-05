@@ -151,6 +151,23 @@ def plot_corr_heatmap(corr_df):
     sns.heatmap(corr_df)
     plt.show()
 
+def highly_correlated_genes(corr_df, percentile=90):
+    """
+    given a correlation dataframe, return a list of the most highly correlated gene pairs.
+    """
+    values = corr_df.to_numpy().flatten()
+    threshold = np.percentile(values, 90)
+    genes = corr_df.index
+    pairs = []
+    for i in range(len(genes)):
+        gene1 = genes[i]
+        for j in range(len(genes)):
+            gene2 = genes[j]
+            corr = corr_df.iloc[i,j]
+            if corr > threshold:
+                pairs.append((gene1, gene2))
+    return pairs
+
 def main():
     # read in data
     tpm_data, gene_loc_data, tad_data = extract_data(args.data_path, args.gene_loc_path, args.tad_path)
