@@ -146,27 +146,29 @@ def calc_tad_coexp(chr, start, end, gene_loc, tpm):
     avg_corr = np.mean(corr_df.to_numpy())
     return corr_df, avg_corr
 
-def plot_corr_distance(distances, correlation, xlab="Distance from TAD boundary (kb)"):
+def plot_corr_distance(title, distances, correlation, is_tad=True):
+    """
+    plot correlation as a function of distance (either distance from TAD boundary or distance between gene pairs)
+    """
     plt.plot(distances, correlation)
-    plt.title("Average pairwise correlation")
-    plt.xlabel(xlab)
-    plt.ylabel("Avg correlation")
+    if is_tad:
+        plt.title("Average pairwise correlation")
+        plt.xlabel("Distance from TAD boundary in kb")
+        plt.ylabel("Average correlation")
+    else:
+        plt.title("Pairwise correlation")
+        plt.xlabel("Distance between genes in bp")
+        plt.ylabel("Correlation")
+    # plt.savefig(title + "_lineplot.png")
     plt.show()
 
-def plot_tad_corr(tad_id, corr_df, distances, correlation):
+def plot_tad_heatmap(title, corr_df):
     """
-    heatmap of gene correlation within a TAD
-    lineplot showing how correlation changes with sliding windows
+    plot heatmap of gene correlation within a TAD
     """
-    print(tad_id)
+    sns.heatmap(corr_df)
     sns_plot = sns.clustermap(corr_df)
-    # sns_plot.figure.savefig(tad_id + "_heatmap.png")
-    fig, ax = plt.subplots()
-    ax.plot(distances, correlation)
-    ax.set_title("Average pairwise correlation")
-    ax.set_xlabel("Distance from TAD boundary in kb")
-    ax.set_ylabel("Avg correlation")
-    # plt.savefig(tad_id + "_lineplot.png")
+    # sns_plot.figure.savefig(title + "_heatmap.png")
     plt.show()
 
 # def get_highly_correlated_genes(corr_df, percentile=90):
@@ -236,7 +238,9 @@ def main():
             for new_chr, new_start, new_end in new_boundaries:
                 new_corr_df, new_corr = calc_tad_coexp(new_chr, new_start, new_end, gene_loc_data, tpm)
                 corr.append(new_corr)
-            plot_tad_corr("{}_{}-{}".format(tad_chr, tad_start, tad_end), tad_corr_df, np.array(distances)/1000, corr)
+            tad_location = "{}_{}-{}".format(tad_chr, tad_start, tad_end)
+            plot_tad_heatmap(tad_location, tad_corr_df)
+            plot_corr_distance(tad_location, np.array(distances)/1000 , corr)
 
     # # analysis 2: are highly correlated genes in the same TAD?
     # # get correlation matrix of all genes (genes * genes)
