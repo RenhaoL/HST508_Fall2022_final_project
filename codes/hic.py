@@ -174,16 +174,26 @@ def plot_corr_heatmap(corr_df):
 #                 pairs.append((gene1, gene2))
 #     return pairs
 
+def calc_gene_dist(gene_pair,gene_loc):
+    """
+    Calculate gene distance assuming genes are on the same chromosome
+    Midpoint distance
+    """
+    gene1 = gene_pair[0]
+    gene2 = gene_pair[1]
+    gene1_srt = gene_loc.loc[gene1]['start']
+    gene1_end = gene_loc.loc[gene1]['end']
+    gene2_srt = gene_loc.loc[gene2]['start']
+    gene2_end = gene_loc.loc[gene2]['end']
+    return abs((gene1_srt+gene1_end)/2-(gene2_srt+gene2_end)/2)
 
 def genes_in_same_tad(gene_pair,tg_dict):
     """
     given a pair of genes as a tuple, determine whether the genes are in the same TAD.
     """
-    gene1 = gene_pair[0]
-    gene2 = gene_pair[1]
     for v in tg_dict.values():
-        if gene1 in v:
-            if gene2 in v:
+        if gene_pair[0] in v:
+            if gene_pair[1] in v:
                 return True
             else:
                 return False
