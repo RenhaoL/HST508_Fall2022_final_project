@@ -146,10 +146,10 @@ def calc_tad_coexp(chr, start, end, gene_loc, tpm):
     avg_corr = np.mean(corr_df.to_numpy())
     return corr_df, avg_corr
 
-def plot_corr_distance(distances, correlation):
+def plot_corr_distance(distances, correlation, xlab="Distance from TAD boundary (kb)"):
     plt.plot(distances, correlation)
     plt.title("Average pairwise correlation")
-    plt.xlabel("Distance from TAD boundary in kb")
+    plt.xlabel(xlab)
     plt.ylabel("Avg correlation")
     plt.show()
 
