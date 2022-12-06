@@ -174,11 +174,20 @@ def plot_corr_heatmap(corr_df):
 #                 pairs.append((gene1, gene2))
 #     return pairs
 
-# def genes_in_tad(gene_pair):
-#     """
-#     given a pair of genes, determine whether the genes are in the same TAD.
-#     """
-#     return None
+
+def genes_in_same_tad(gene_pair,tg_dict):
+    """
+    given a pair of genes as a tuple, determine whether the genes are in the same TAD.
+    """
+    gene1 = gene_pair[0]
+    gene2 = gene_pair[1]
+    for v in tg_dict.values():
+        if gene1 in v:
+            if gene2 in v:
+                return True
+            else:
+                return False
+    return False
 
 def main():
     # read in data
@@ -200,7 +209,7 @@ def main():
             tad_chr, tad_start, tad_end = tad.loc[t,:]
             tad_corr_df, tad_corr = calc_tad_coexp(tad_chr, tad_start, tad_end, gene_loc_data, tpm)
             # plot_corr_heatmap(tad_corr_df)
-            new_boundaries, slide_distances = slide_boundary(tad_chr, tad_start, tad_end, 20)
+            new_boundaries, slide_distances = slide_boundary(tad_chr, tad_start, tad_end, 30)
             corr = [tad_corr]
             distances = [0] + slide_distances
             for new_chr, new_start, new_end in new_boundaries:
