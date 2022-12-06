@@ -146,15 +146,18 @@ def calc_tad_coexp(chr, start, end, gene_loc, tpm):
     avg_corr = np.mean(corr_df.to_numpy())
     return corr_df, avg_corr
 
-def plot_corr_distance(distances, correlation):
-    plt.plot(distances, correlation)
-    plt.title("Average pairwise correlation")
-    plt.xlabel("Distance from TAD boundary in kb")
-    plt.ylabel("Avg correlation")
-    plt.show()
-
-def plot_corr_heatmap(corr_df):
-    sns.heatmap(corr_df)
+def plot_tad_corr(tad_id, corr_df, distances, correlation):
+    print(tad_id)
+    # heatmap of TAD correlation
+    sns_plot = sns.clustermap(corr_df)
+    # sns_plot.figure.savefig(tad_id + "_heatmap.png")
+    # lineplot of sliding windows
+    fig, ax = plt.subplots()
+    ax.plot(distances, correlation)
+    ax.set_title("Average pairwise correlation")
+    ax.set_xlabel("Distance from TAD boundary in kb")
+    ax.set_ylabel("Avg correlation")
+    # plt.savefig(tad_id + "_lineplot.png")
     plt.show()
 
 # def get_highly_correlated_genes(corr_df, percentile=90):
@@ -199,15 +202,14 @@ def main():
                 continue
             tad_chr, tad_start, tad_end = tad.loc[t,:]
             tad_corr_df, tad_corr = calc_tad_coexp(tad_chr, tad_start, tad_end, gene_loc_data, tpm)
-            # plot_corr_heatmap(tad_corr_df)
             new_boundaries, slide_distances = slide_boundary(tad_chr, tad_start, tad_end, 20)
             corr = [tad_corr]
             distances = [0] + slide_distances
             for new_chr, new_start, new_end in new_boundaries:
                 new_corr_df, new_corr = calc_tad_coexp(new_chr, new_start, new_end, gene_loc_data, tpm)
                 corr.append(new_corr)
-            # plot_corr_distance(np.array(distances) / 1000 , corr)
-    
+                plot_tad_corr("{}_{}-{}".format(tad_chr, tad_start, tad_end), tad_corr_df, np.array(distances)/1000, corr)
+
     # # analysis 2: are highly correlated genes in the same TAD?
     # # get correlation matrix of all genes (genes * genes)
     # all_genes_corr_df = None
