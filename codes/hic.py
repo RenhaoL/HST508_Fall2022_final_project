@@ -10,7 +10,7 @@ import os
 parser = argparse.ArgumentParser(description="TAD analysis")
 
 # get inputs using parser
-parser.add_argument('--data_path', type=str, default="../data/single_cell_tpm.tsv")
+parser.add_argument('--data_path', type=str, default="../data/ENCODE_bulk_rna_seq.csv")
 parser.add_argument('--gene_loc_path', type=str, default="../data/gene_locations.tsv")
 parser.add_argument('--tad_path', type=str, default="../data/TAD_strong_boundary_start_end.csv")
 
@@ -26,9 +26,15 @@ def extract_data(data_path,gene_loc_path,tad_path,excl_chrom=['chrM','chrX','chr
     make sure the genes are contained in the chromosome location info file (take intersection)
     """
     # read in data
-    sc_df = pd.read_csv(data_path,sep="\t",index_col=0)
+    sc_df = pd.read_csv(data_path,index_col=0)
+    sc_df = sc_df.loc[[idx for idx in sc_df.index if 'ENSMUSG' in idx]]
     gloc = pd.read_csv(gene_loc_path,sep="\t",index_col=0)
     tad = pd.read_csv(tad_path)
+    # index manipulation
+    sc_df_idx = [idx.split(".")[0] for idx in sc_df.index]
+    sc_df.index = sc_df_idx
+    gloc_idx = [idx.split(".")[0] for idx in gloc.index]
+    gloc.index = gloc_idx
     # get rid of genes with 0 exp across all samples
     sc_df_filtered = sc_df.loc[np.sum(sc_df,axis=1)!=0]
     # get rid of chromosomes in exclusion list
