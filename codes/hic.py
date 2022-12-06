@@ -174,13 +174,13 @@ def plot_corr_heatmap(corr_df):
 #                 pairs.append((gene1, gene2))
 #     return pairs
 
-def calc_gene_dist(gene_pair,gene_loc):
+def calc_gene_dist(same_chrom_gene_pair,gene_loc):
     """
     Calculate gene distance assuming genes are on the same chromosome
     Midpoint distance
     """
-    gene1 = gene_pair[0]
-    gene2 = gene_pair[1]
+    gene1 = same_chrom_gene_pair[0]
+    gene2 = same_chrom_gene_pair[1]
     gene1_srt = gene_loc.loc[gene1]['start']
     gene1_end = gene_loc.loc[gene1]['end']
     gene2_srt = gene_loc.loc[gene2]['start']
