@@ -276,12 +276,7 @@ def main():
         #         pairs_in_tad.append(pair)
         # print frequency of pairs in the same TAD
 
-<<<<<<< HEAD
         # analysis 3: correlation as a function of distance between genes
-=======
-    # analysis 3: correlation as a function of distance between genes
-    
->>>>>>> b3414c4 (add func to calculate gene dist correlation)
 
 if __name__ == "__main__":
     main()
