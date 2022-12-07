@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import zscore
 import argparse
-import os
+import itertools
 
 parser = argparse.ArgumentParser(description="TAD analysis")
 
@@ -171,26 +171,22 @@ def plot_tad_heatmap(title, corr_df):
     sns_plot.figure.savefig(title + "_heatmap.png")
     plt.show()
 
-def get_highly_correlated_genes(corr_df, chromosome, percentile=90):
+def get_highly_correlated_genes(corr_df, percentile=90):
     """
     given a correlation dataframe, return a list of the most highly correlated gene pairs.
     """
-    # outfile = open("../results/{}_pair_correlations".format(chromosome), "w")
-    values = corr_df.to_numpy().flatten()
+    corr_matrix = corr_df.to_numpy()
+    values = corr_matrix[np.triu_indices_from(corr_matrix, 1)].flatten()
     threshold = np.percentile(values, percentile)
     genes = corr_df.index
-    pairs = []
-    for i in range(len(genes)):
-        gene1 = genes[i]
-        for j in range(len(genes)):
-            gene2 = genes[j]
-            corr = corr_df.iloc[i,j]
-            if corr > threshold:
-                pairs.append((gene1, gene2))
-                print(gene1, gene2, corr, threshold)
-            # outfile.write("{}\t{}\t{}\n".format(gene1, gene2, corr))
-    print(len(pairs))
-    return pairs
+    all_pairs = list(itertools.combinations(genes, 2))
+    highly_correlated_pairs = []
+    for pair in all_pairs:
+        gene1, gene2 = pair[0], pair[1]
+        corr = corr_df.loc[gene1,gene2]
+        if corr > threshold:
+            highly_correlated_pairs.append((gene1, gene2))
+    return highly_correlated_pairs
 
 def calc_gene_dist(same_chrom_gene_pair,gene_loc):
     """
@@ -204,24 +200,6 @@ def calc_gene_dist(same_chrom_gene_pair,gene_loc):
     gene2_srt = gene_loc.loc[gene2]['start']
     gene2_end = gene_loc.loc[gene2]['end']
     return abs((gene1_srt+gene1_end)/2-(gene2_srt+gene2_end)/2)
-
-def gene_dist_correlation(same_chrom_gene_pair, gene_corr_matrix_dir):
-
-    """Extract the correlation between two genes on the same chromosome from the chomosome specific correlation matrix
-
-    Returns:
-        float: correlation between the two given genes
-    """
-
-    assert len(same_chrom_gene_pair) == 2, "Only accept two genes as input"
-
-    gene_corr_matrix = pd.read_csv(gene_corr_matrix_dir)
-    gene1, gene2 = same_chrom_gene_pair[0], same_chrom_gene_pair[1]
-
-    assert str(gene1) in list(gene_corr_matrix.columns) and str(gene2) in list(gene_corr_matrix.columns), "The input gene pairs does not locate on the same chromosome"
-
-    return gene_corr_matrix.loc[gene1, gene2]
-    
 
 def genes_in_same_tad(gene_pair,tg_dict):
     """
@@ -267,14 +245,13 @@ def main():
         # analysis 2: are highly correlated genes in the same TAD?
         # get correlation matrix of all genes by chromosome
         all_genes_corr_df = tpm.transpose().corr()
-        outfile = "../results/{}_genes_corr_df.csv".format(chromosome)
-        all_genes_corr_df.to_csv(outfile)
-        highly_correlated_genes = get_highly_correlated_genes(all_genes_corr_df, chromosome)
-        # pairs_in_tad = []
-        # for pair in highly_correlated_genes:
-        #     if genes_in_same_tad(pair):
-        #         pairs_in_tad.append(pair)
-        # print frequency of pairs in the same TAD
+        highly_correlated_gene_pairs = get_highly_correlated_genes(all_genes_corr_df)
+        pairs_in_tad = []
+        for pair in highly_correlated_gene_pairs:
+            if genes_in_same_tad(pair, tg_dict):
+                pairs_in_tad.append(pair)
+        print(len(pairs_in_tad) / len(highly_correlated_gene_pairs))
+        break
 
         # analysis 3: correlation as a function of distance between genes
 
