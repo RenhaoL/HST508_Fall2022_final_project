@@ -159,7 +159,7 @@ def plot_corr_distance(title, distances, correlation, is_tad=True):
         plt.title("Pairwise correlation")
         plt.xlabel("Distance between genes in bp")
         plt.ylabel("Correlation")
-    # plt.savefig(title + "_lineplot.png")
+    plt.savefig(title + "_lineplot.png")
     plt.show()
 
 def plot_tad_heatmap(title, corr_df):
@@ -168,25 +168,29 @@ def plot_tad_heatmap(title, corr_df):
     """
     sns.heatmap(corr_df)
     sns_plot = sns.clustermap(corr_df)
-    # sns_plot.figure.savefig(title + "_heatmap.png")
+    sns_plot.figure.savefig(title + "_heatmap.png")
     plt.show()
 
-# def get_highly_correlated_genes(corr_df, percentile=90):
-#     """
-#     given a correlation dataframe, return a list of the most highly correlated gene pairs.
-#     """
-#     values = corr_df.to_numpy().flatten()
-#     threshold = np.percentile(values, 90)
-#     genes = corr_df.index
-#     pairs = []
-#     for i in range(len(genes)):
-#         gene1 = genes[i]
-#         for j in range(len(genes)):
-#             gene2 = genes[j]
-#             corr = corr_df.iloc[i,j]
-#             if corr > threshold:
-#                 pairs.append((gene1, gene2))
-#     return pairs
+def get_highly_correlated_genes(corr_df, percentile=90):
+    """
+    given a correlation dataframe, return a list of the most highly correlated gene pairs.
+    """
+    outfile = open("../data/gene_pair_correlations", "w")
+    values = corr_df.to_numpy().flatten()
+    threshold = np.percentile(values, 90)
+    genes = corr_df.index
+    pairs = []
+    for i in range(len(genes)):
+        gene1 = genes[i]
+        for j in range(len(genes)):
+            gene2 = genes[j]
+            corr = corr_df.iloc[i,j]
+            if corr > threshold:
+                pairs.append((gene1, gene2))
+                print(pairs, corr, threshold)
+            outfile.write("{}\t{}\t{}\n".format(gene1, gene2, corr))
+    print(len(pairs))
+    return pairs
 
 def calc_gene_dist(same_chrom_gene_pair,gene_loc):
     """
@@ -239,18 +243,20 @@ def main():
                 new_corr_df, new_corr = calc_tad_coexp(new_chr, new_start, new_end, gene_loc_data, tpm)
                 corr.append(new_corr)
             tad_location = "{}_{}-{}".format(tad_chr, tad_start, tad_end)
-            plot_tad_heatmap(tad_location, tad_corr_df)
-            plot_corr_distance(tad_location, np.array(distances)/1000 , corr)
+            # plot_tad_heatmap(tad_location, tad_corr_df)
+            # plot_corr_distance(tad_location, np.array(distances)/1000 , corr)
 
-    # # analysis 2: are highly correlated genes in the same TAD?
-    # # get correlation matrix of all genes (genes * genes)
-    # all_genes_corr_df = None
-    # highly_correlated_genes = get_highly_correlated_genes(all_genes_corr_df)
+    # analysis 2: are highly correlated genes in the same TAD?
+    # get correlation matrix of all genes (genes * genes)
+    all_genes_corr_df = norm_tpm.transpose().corr()
+    outfile = "../data/all_genes_corr_df.csv"
+    all_genes_corr_df.to_csv(outfile)
+    highly_correlated_genes = get_highly_correlated_genes(all_genes_corr_df)
     # pairs_in_tad = []
     # for pair in highly_correlated_genes:
-    #     if genes_in_tad(pair):
+    #     if genes_in_same_tad(pair):
     #         pairs_in_tad.append(pair)
-    # # print frequency of pairs in the same TAD
+    # print frequency of pairs in the same TAD
 
     # analysis 3: correlation as a function of distance between genes
 
