@@ -171,13 +171,13 @@ def plot_tad_heatmap(title, corr_df):
     sns_plot.figure.savefig(title + "_heatmap.png")
     plt.show()
 
-def get_highly_correlated_genes(corr_df, percentile=90):
+def get_highly_correlated_genes(corr_df, chromosome, percentile=90):
     """
     given a correlation dataframe, return a list of the most highly correlated gene pairs.
     """
-    outfile = open("../data/gene_pair_correlations", "w")
+    # outfile = open("../results/{}_pair_correlations".format(chromosome), "w")
     values = corr_df.to_numpy().flatten()
-    threshold = np.percentile(values, 90)
+    threshold = np.percentile(values, percentile)
     genes = corr_df.index
     pairs = []
     for i in range(len(genes)):
@@ -187,8 +187,8 @@ def get_highly_correlated_genes(corr_df, percentile=90):
             corr = corr_df.iloc[i,j]
             if corr > threshold:
                 pairs.append((gene1, gene2))
-                print(pairs, corr, threshold)
-            outfile.write("{}\t{}\t{}\n".format(gene1, gene2, corr))
+                print(gene1, gene2, corr, threshold)
+            # outfile.write("{}\t{}\t{}\n".format(gene1, gene2, corr))
     print(len(pairs))
     return pairs
 
@@ -246,19 +246,19 @@ def main():
             # plot_tad_heatmap(tad_location, tad_corr_df)
             # plot_corr_distance(tad_location, np.array(distances)/1000 , corr)
 
-    # analysis 2: are highly correlated genes in the same TAD?
-    # get correlation matrix of all genes (genes * genes)
-    all_genes_corr_df = norm_tpm.transpose().corr()
-    outfile = "../data/all_genes_corr_df.csv"
-    all_genes_corr_df.to_csv(outfile)
-    highly_correlated_genes = get_highly_correlated_genes(all_genes_corr_df)
-    # pairs_in_tad = []
-    # for pair in highly_correlated_genes:
-    #     if genes_in_same_tad(pair):
-    #         pairs_in_tad.append(pair)
-    # print frequency of pairs in the same TAD
+        # analysis 2: are highly correlated genes in the same TAD?
+        # get correlation matrix of all genes by chromosome
+        all_genes_corr_df = tpm.transpose().corr()
+        outfile = "../results/{}_genes_corr_df.csv".format(chromosome)
+        all_genes_corr_df.to_csv(outfile)
+        highly_correlated_genes = get_highly_correlated_genes(all_genes_corr_df, chromosome)
+        # pairs_in_tad = []
+        # for pair in highly_correlated_genes:
+        #     if genes_in_same_tad(pair):
+        #         pairs_in_tad.append(pair)
+        # print frequency of pairs in the same TAD
 
-    # analysis 3: correlation as a function of distance between genes
+        # analysis 3: correlation as a function of distance between genes
 
 if __name__ == "__main__":
     main()
