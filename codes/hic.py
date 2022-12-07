@@ -217,6 +217,18 @@ def calc_gene_dist(same_chrom_gene_pair,gene_loc):
     gene2_end = gene_loc.loc[gene2]['end']
     return abs((gene1_srt+gene1_end)/2-(gene2_srt+gene2_end)/2)
 
+def gene_dist_correlation(same_chrom_gene_pair, gene_corr_matrix):
+    """Extract the correlation between two genes on the same chromosome from the chomosome specific correlation matrix
+
+    Returns:
+        float: correlation between the two given genes
+    """
+    assert len(same_chrom_gene_pair) == 2, "Only accept two genes as input"
+    gene1, gene2 = same_chrom_gene_pair[0], same_chrom_gene_pair[1]
+    assert str(gene1) in list(gene_corr_matrix.columns) and str(gene2) in list(gene_corr_matrix.columns), "The input gene pairs does not locate on the same chromosome"
+    return gene_corr_matrix.loc[gene1, gene2]
+    
+
 def genes_in_same_tad(gene_pair,tg_dict,return_false_if_same_genes=True):
     """
     given a pair of genes as a tuple, determine whether the genes are in the same TAD.
