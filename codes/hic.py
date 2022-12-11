@@ -312,6 +312,7 @@ def hc_genes_in_tads(chromosome, all_genes_corr_df, gene_loc, tad, tg_dict, plot
     """
     plot distribution of HC gene pair proportion in TAD vs random gene pairs
     """
+    random.seed(10)
     hc_gene_pairs = high_low_corr_genes(all_genes_corr_df, 90)
     tad_prop_hc_genes = []
     random_prop_hc_genes = []
@@ -337,13 +338,12 @@ def hc_genes_in_tads(chromosome, all_genes_corr_df, gene_loc, tad, tg_dict, plot
         plt.title(chromosome)
         plt.legend(loc="upper right")
         plt.savefig(f"../results/hc_genes_in_tad_{chromosome}.png")
-        plt.show()
     
-def sliding_windows(tpm, gene_loc, tad, tg_dict, tad_data, gene_loc_data, tad_size=30, plot=True):
+def sliding_windows(tpm, gene_loc, tad, tad_data, gene_loc_data, tad_size=30, plot=True):
     """
     plot lineplot and heatmap of sliding windows
     """
-    tg_dict = tad_gene_dict(tad_data,gene_loc_data, tad_size)
+    tg_dict = tad_gene_dict(tad_data, gene_loc_data, tad_size)
 
     for t in tad.index:
         if t not in tg_dict.keys():
@@ -367,11 +367,9 @@ def sliding_windows(tpm, gene_loc, tad, tg_dict, tad_data, gene_loc_data, tad_si
             plt.xlabel("Distance from TAD boundary in kb")
             plt.ylabel("Average correlation")
             plt.savefig(f"../results/{tad_location}_sliding_window.png")
-            plt.show()
             # heatmap
             sns_plot = sns.clustermap(tad_corr_df)
             sns_plot.figure.savefig(f"../results/{tad_location}_heatmap.png")
-            plt.show()
 
 def main():
     # read in data
@@ -384,10 +382,11 @@ def main():
 
     chromosome_list = ['chr'+str(i+1) for i in range(19)]
     
-    for chromosome in chromosome_list:
+    for chromosome in chromosome_list[:2]:
+        print(f"Analyzing {chromosome}...")
         tpm, gene_loc, tad = get_genes_from_chromosome(chromosome,norm_tpm,tad_data,gene_loc_data)
         # analysis 1: correlation vs sliding windows
-        sliding_windows(tpm, gene_loc, tad, tg_dict, tad_data, gene_loc_data, tad_size=30, plot=True)
+        sliding_windows(tpm, gene_loc, tad, tad_data, gene_loc_data, tad_size=30, plot=True)
         # analysis 2: are highly correlated genes in the same TAD?
         all_genes_corr_df = tpm.transpose().corr()
         hc_genes_in_tads(chromosome, all_genes_corr_df, gene_loc, tad, tg_dict, plot=True)
