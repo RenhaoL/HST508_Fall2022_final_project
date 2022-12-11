@@ -186,22 +186,27 @@ def plot_tad_heatmap(title, corr_df):
     sns_plot.figure.savefig(title + "_heatmap.png")
     plt.show()
 
-def get_highly_correlated_genes(corr_df, percentile=90): # I think percentile should be a specified argument
+def high_low_corr_genes(corr_df, percentile, high=True):
     """
-    given a correlation dataframe, return a list of the most highly correlated gene pairs.
+    if high, return all gene pairs greater than percentile
+    if low, return all gene pairs less than percentile
     """
     corr_matrix = corr_df.to_numpy()
     values = corr_matrix[np.triu_indices_from(corr_matrix, 1)].flatten()
     threshold = np.percentile(values, percentile)
     genes = corr_df.index
     all_pairs = list(itertools.combinations(genes, 2))
-    highly_correlated_pairs = []
+    correlated_gene_pairs = []
     for pair in all_pairs:
         gene1, gene2 = pair[0], pair[1]
         corr = corr_df.loc[gene1,gene2]
-        if corr > threshold:
-            highly_correlated_pairs.append((gene1, gene2))
-    return highly_correlated_pairs
+        if high:
+            if corr > threshold and corr < 0.99:
+                correlated_gene_pairs.append((gene1,gene2))
+        else:
+            if corr < threshold:
+                correlated_gene_pairs.append((gene1,gene2))
+    return correlated_gene_pairs
 
 def calc_gene_dist(same_chrom_gene_pair,gene_loc):
     """
