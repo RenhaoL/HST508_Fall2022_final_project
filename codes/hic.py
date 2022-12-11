@@ -396,7 +396,7 @@ def main():
         # analysis 2: are highly correlated genes in the same TAD?
         all_genes_corr_df = tpm.transpose().corr()
         analysis2_df = hc_genes_in_tads(chromosome, all_genes_corr_df, gene_loc, tad, tg_dict, plot=True)
-        analysis2_df.to_csv("../results/analysis2_{chromosome}_df.csv")
+        analysis2_df.to_csv(f"../results/analysis2_{chromosome}_df.csv")
         print("Analysis 2 done.")
         # analysis 3: correlation as a function of distance between genes
         analysis3_high_corr_df, analysis3_other_corr_df = corr_vs_dist(all_genes_corr_df, gene_loc_data, plot=True, title = f"Gene distance between high correlated and low correlated genes \n in {chromosome}", save=f"../results/corr_vs_dist_plot_{chromosome}.png")
