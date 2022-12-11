@@ -250,9 +250,10 @@ def genes_in_same_tad(gene_pair,tg_dict,return_false_if_same_genes=True):
     return False
 
 
-def corr_vs_dist(corr_df, gene_loc_df, percentile = 90, random_sample_size=1000, plot=False, title="Gene distance between high correlated and low correlated genes",save="../results/corr_vs_dist_plot.png"):
+def corr_vs_dist(corr_df, gene_loc_df, percentile = 90, random_sample_size=1000, plot=False, title="Gene distance between high correlated and low correlated genes",save="../results/corr_vs_dist_plot.png", **kwargs):
     
     """compare the genetic distance vs. the gene correlation by random sample 1000 genes from all correlations.
+        **kwargs will be passed down to pd.plot.hist()
 
     Returns:
         the high correlated and other genes pairs with correlation and genetic distance. 
@@ -299,7 +300,7 @@ def corr_vs_dist(corr_df, gene_loc_df, percentile = 90, random_sample_size=1000,
     if plot:
         combined_df = pd.concat([high_corr_gene_pairs_df_random[["gene_dis"]], low_corr_gene_pairs_df_random[["gene_dis"]]], axis=1)
         combined_df.columns = ["gene_dis_high_corr", "gene_dis_others"]
-        combined_df.plot.hist(alpha=0.5)
+        combined_df.plot.hist(alpha=0.5, **kwargs)
         plt.title(title)
         plt.xlabel("genetic distance (bp)")
         plt.savefig(save)
