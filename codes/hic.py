@@ -8,6 +8,7 @@ import argparse
 import itertools
 from tqdm import tqdm
 import random
+import warnings
 
 parser = argparse.ArgumentParser(description="TAD analysis")
 
@@ -339,6 +340,8 @@ def hc_genes_in_tads(chromosome, all_genes_corr_df, gene_loc, tad, tg_dict, plot
         plt.legend(loc="upper right")
         plt.savefig(f"../results/hc_genes_in_tad_{chromosome}.png")
     
+    return df
+    
 def sliding_windows(tpm, gene_loc, tad, tad_data, gene_loc_data, tad_size=30, plot=True):
     """
     plot lineplot and heatmap of sliding windows
@@ -358,12 +361,12 @@ def sliding_windows(tpm, gene_loc, tad, tad_data, gene_loc_data, tad_size=30, pl
         for new_chr, new_start, new_end in new_boundaries:
             new_corr_df, new_corr = calc_tad_coexp(new_chr, new_start, new_end, gene_loc, tpm)
             corr.append(new_corr)
-        tad_location = "{}:{}-{}".format(tad_chr, tad_start, tad_end)
+        tad_location = "{}_{}-{}".format(tad_chr, int(tad_start), int(tad_end))
 
         if plot:
             # lineplot
             plt.plot(np.array(distances)/1000, corr)
-            plt.title("Average pairwise correlation")
+            plt.title(tad_location)
             plt.xlabel("Distance from TAD boundary in kb")
             plt.ylabel("Average correlation")
             plt.savefig(f"../results/{tad_location}_sliding_window.png")
@@ -372,6 +375,8 @@ def sliding_windows(tpm, gene_loc, tad, tad_data, gene_loc_data, tad_size=30, pl
             sns_plot.figure.savefig(f"../results/{tad_location}_heatmap.png")
 
 def main():
+    # ignore warnings
+    warnings.filterwarnings("ignore")
     # read in data
     tpm_data, gene_loc_data, tad_data = extract_data(args.data_path, args.gene_loc_path, args.tad_path)
     # normalize tpm data
@@ -389,7 +394,8 @@ def main():
         sliding_windows(tpm, gene_loc, tad, tad_data, gene_loc_data, tad_size=30, plot=True)
         # analysis 2: are highly correlated genes in the same TAD?
         all_genes_corr_df = tpm.transpose().corr()
-        hc_genes_in_tads(chromosome, all_genes_corr_df, gene_loc, tad, tg_dict, plot=True)
+        analysis2_df = hc_genes_in_tads(chromosome, all_genes_corr_df, gene_loc, tad, tg_dict, plot=True)
+        analysis2_df.to_csv("../results/analysis2_{chromosome}_df.csv")
         # analysis 3: correlation as a function of distance between genes
         corr_vs_dist(all_genes_corr_df, gene_loc, plot=True, title = f"Gene distance between high correlated and low correlated genes \n in {chromosome}", save=f"../results/corr_vs_dist_plot_{chromosome}.png")
 
