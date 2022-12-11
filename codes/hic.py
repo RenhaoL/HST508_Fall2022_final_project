@@ -387,17 +387,22 @@ def main():
 
     chromosome_list = ['chr'+str(i+1) for i in range(19)]
     
-    for chromosome in chromosome_list[:2]:
-        print(f"Analyzing {chromosome}...")
+    for chromosome in chromosome_list:
+        print(f"Processing {chromosome}...")
         tpm, gene_loc, tad = get_genes_from_chromosome(chromosome,norm_tpm,tad_data,gene_loc_data)
         # analysis 1: correlation vs sliding windows
         sliding_windows(tpm, gene_loc, tad, tad_data, gene_loc_data, tad_size=30, plot=True)
+        print("Analysis 1 done.")
         # analysis 2: are highly correlated genes in the same TAD?
         all_genes_corr_df = tpm.transpose().corr()
         analysis2_df = hc_genes_in_tads(chromosome, all_genes_corr_df, gene_loc, tad, tg_dict, plot=True)
         analysis2_df.to_csv("../results/analysis2_{chromosome}_df.csv")
+        print("Analysis 2 done.")
         # analysis 3: correlation as a function of distance between genes
-        corr_vs_dist(all_genes_corr_df, gene_loc, plot=True, title = f"Gene distance between high correlated and low correlated genes \n in {chromosome}", save=f"../results/corr_vs_dist_plot_{chromosome}.png")
+        analysis3_high_corr_df, analysis3_other_corr_df = corr_vs_dist(all_genes_corr_df, gene_loc_data, plot=True, title = f"Gene distance between high correlated and low correlated genes \n in {chromosome}", save=f"../results/corr_vs_dist_plot_{chromosome}.png")
+        analysis3_high_corr_df.to_csv(f"../results/analysis3_{chromosome}_high_corr_df.csv")
+        analysis3_other_corr_df.to_csv(f"../results/analysis3_{chromosome}_other_corr_df.csv")
+        print(f"Analysis 3 done.")
 
 if __name__ == "__main__":
     main()
