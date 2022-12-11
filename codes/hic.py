@@ -7,6 +7,7 @@ from scipy.stats import zscore
 import argparse
 import itertools
 from tqdm import tqdm
+import random
 
 parser = argparse.ArgumentParser(description="TAD analysis")
 
@@ -61,7 +62,6 @@ def filter_genes_by_variance(sc_df,percentile): # not tested
     gene_vars = sc_df.var()
     most_var_genes = (gene_vars >= np.percentile(gene_vars,percentile))
     return sc_df.loc[:,most_var_genes].T # inverts back to genes x samples/tissues
-
 
 def chromosome_gene_dict(gloc_data):
     """
@@ -124,16 +124,12 @@ def get_chr_lengths(path_to_file="../data/chr_lengths"):
     infile.close()
     return chr_lengths
 
-def slide_boundary(chr, start, end, num_iter=5, x=0.2):
+def slide_boundary(chr, start, end, num_iter=5, step_size=10000):
     """
-    shift a TAD boundary left or right [num_iter] times with a step size of [x] * TAD size 
-    while retaining the size of the TAD. return a list of new boundaries and the
-    corresponding distances from the original TAD.
+    shift a TAD boundary left or right [num_iter] times while retaining the size of the TAD. 
+    return a list of new boundaries and the corresponding distances from the original TAD.
     """
     chr_length = get_chr_lengths()[chr]
-    # set step size
-    tad_length = end - start
-    step_size = 5000 # tad_length * x
     # default: shift right
     direction = 1
     # TAD at end: shift left
@@ -163,30 +159,6 @@ def calc_tad_coexp(chr, start, end, gene_loc, tpm):
     avg_corr = np.mean(corr_df.to_numpy())
     return corr_df, avg_corr
 
-def plot_corr_distance(title, distances, correlation, is_tad=True):
-    """
-    plot correlation as a function of distance (either distance from TAD boundary or distance between gene pairs)
-    """
-    plt.plot(distances, correlation)
-    if is_tad:
-        plt.title("Average pairwise correlation")
-        plt.xlabel("Distance from TAD boundary in kb")
-        plt.ylabel("Average correlation")
-    else:
-        plt.title("Pairwise correlation")
-        plt.xlabel("Distance between genes in bp")
-        plt.ylabel("Correlation")
-    plt.savefig(title + "_lineplot.png")
-    plt.show()
-
-def plot_tad_heatmap(title, corr_df):
-    """
-    plot heatmap of gene correlation within a TAD
-    """
-    sns_plot = sns.clustermap(corr_df)
-    sns_plot.figure.savefig(title + "_heatmap.png")
-    plt.show()
-
 def high_low_corr_genes(corr_df, percentile=90, high=True):
     """
     if high, return all gene pairs greater than percentile
@@ -195,8 +167,7 @@ def high_low_corr_genes(corr_df, percentile=90, high=True):
     corr_matrix = corr_df.to_numpy()
     values = corr_matrix[np.triu_indices_from(corr_matrix, 1)].flatten()
     threshold = np.percentile(values, percentile)
-    genes = corr_df.index
-    all_pairs = list(itertools.combinations(genes, 2))
+    all_pairs = get_gene_pairs(corr_df.index)
     correlated_gene_pairs = []
     for pair in all_pairs:
         gene1, gene2 = pair[0], pair[1]
@@ -233,7 +204,6 @@ def gene_dist_correlation(same_chrom_gene_pair, gene_corr_matrix):
     assert str(gene1) in list(gene_corr_matrix.columns) and str(gene2) in list(gene_corr_matrix.columns), "The input gene pairs does not locate on the same chromosome"
     return gene_corr_matrix.loc[gene1, gene2]
     
-
 def genes_in_same_tad(gene_pair,tg_dict,return_false_if_same_genes=True):
     """
     given a pair of genes as a tuple, determine whether the genes are in the same TAD.
@@ -248,7 +218,6 @@ def genes_in_same_tad(gene_pair,tg_dict,return_false_if_same_genes=True):
             else:
                 return False
     return False
-
 
 def corr_vs_dist(corr_df, gene_loc_df, percentile = 90, random_sample_size=1000, plot=False, title="Gene distance between high correlated and low correlated genes",save="../results/corr_vs_dist_plot.png", **kwargs):
     
@@ -309,7 +278,100 @@ def corr_vs_dist(corr_df, gene_loc_df, percentile = 90, random_sample_size=1000,
         
     return high_corr_gene_pairs_df_random, low_corr_gene_pairs_df_random
 
+def get_gene_pairs(genes):
+    """
+    given a list of genes, return all possible pairs (not including self pairs)
+    """
+    return list(itertools.combinations(genes, 2))
 
+def get_random_gene_pairs(genes, tg_dict, num_pairs=100):
+    """
+    given a list of genes, return a random list of gene pairs that are not located in TADs
+    """
+    gene_pairs = []
+    count = 0
+    while count < num_pairs:
+        gene1 = random.choice(genes)
+        gene2 = random.choice(genes)
+        if not genes_in_same_tad((gene1, gene2), tg_dict) and gene1 != gene2:
+            gene_pairs.append((gene1, gene2))
+            count += 1
+    return gene_pairs
+
+def get_prop_hc_genes(gene_pairs, hc_gene_pairs):
+    """
+    return proportion of gene pairs that are highly correlated
+    """
+    hc_count = 0
+    for pair in gene_pairs:
+        if pair in hc_gene_pairs:
+            hc_count += 1
+    return hc_count / len(gene_pairs)
+
+def hc_genes_in_tads(chromosome, all_genes_corr_df, gene_loc, tad, tg_dict, plot=True):
+    """
+    plot distribution of HC gene pair proportion in TAD vs random gene pairs
+    """
+    hc_gene_pairs = high_low_corr_genes(all_genes_corr_df, 90)
+    tad_prop_hc_genes = []
+    random_prop_hc_genes = []
+
+    for t in tad.index:
+        if t not in tg_dict.keys():
+            continue
+        tad_chr, tad_start, tad_end = tad.loc[t,:]
+
+        tad_gene_pairs = get_gene_pairs(get_genes_in_interval(tad_chr, tad_start, tad_end, gene_loc))
+        if len(tad_gene_pairs) == 0:
+            continue
+        random_gene_pairs = get_random_gene_pairs(gene_loc.index, tg_dict, len(tad_gene_pairs))
+
+        tad_prop_hc_genes.append(get_prop_hc_genes(tad_gene_pairs, hc_gene_pairs))
+        random_prop_hc_genes.append(get_prop_hc_genes(random_gene_pairs, hc_gene_pairs))
+
+    if plot:
+        df = pd.DataFrame({"TAD": tad_prop_hc_genes, "random": random_prop_hc_genes})
+        df.plot.hist(alpha=0.5)
+        plt.xlabel("Proportion of HC gene pairs")
+        plt.ylabel("Frequency")
+        plt.title(chromosome)
+        plt.legend(loc="upper right")
+        plt.savefig(f"../results/hc_genes_in_tad_{chromosome}.png")
+        plt.show()
+    
+def sliding_windows(tpm, gene_loc, tad, tg_dict, tad_data, gene_loc_data, tad_size=30, plot=True):
+    """
+    plot lineplot and heatmap of sliding windows
+    """
+    tg_dict = tad_gene_dict(tad_data,gene_loc_data, tad_size)
+
+    for t in tad.index:
+        if t not in tg_dict.keys():
+            continue
+        tad_chr, tad_start, tad_end = tad.loc[t,:]
+        tad_corr_df, tad_corr = calc_tad_coexp(tad_chr, tad_start, tad_end, gene_loc, tpm)
+        new_boundaries, slide_distances = slide_boundary(tad_chr, tad_start, tad_end, 20)
+
+        corr = [tad_corr]
+        distances = [0] + slide_distances
+
+        for new_chr, new_start, new_end in new_boundaries:
+            new_corr_df, new_corr = calc_tad_coexp(new_chr, new_start, new_end, gene_loc, tpm)
+            corr.append(new_corr)
+        tad_location = "{}:{}-{}".format(tad_chr, tad_start, tad_end)
+
+        if plot:
+            # lineplot
+            plt.plot(np.array(distances)/1000, corr)
+            plt.title("Average pairwise correlation")
+            plt.xlabel("Distance from TAD boundary in kb")
+            plt.ylabel("Average correlation")
+            plt.savefig(f"../results/{tad_location}_sliding_window.png")
+            plt.show()
+            # heatmap
+            sns_plot = sns.clustermap(tad_corr_df)
+            sns_plot.figure.savefig(f"../results/{tad_location}_heatmap.png")
+            plt.show()
 
 def main():
     # read in data
@@ -325,31 +387,10 @@ def main():
     for chromosome in chromosome_list:
         tpm, gene_loc, tad = get_genes_from_chromosome(chromosome,norm_tpm,tad_data,gene_loc_data)
         # analysis 1: correlation vs sliding windows
-        for t in tad.index:
-            if t not in tg_dict.keys():
-                continue
-            tad_chr, tad_start, tad_end = tad.loc[t,:]
-            tad_corr_df, tad_corr = calc_tad_coexp(tad_chr, tad_start, tad_end, gene_loc_data, tpm)
-            new_boundaries, slide_distances = slide_boundary(tad_chr, tad_start, tad_end, 20)
-            corr = [tad_corr]
-            distances = [0] + slide_distances
-            for new_chr, new_start, new_end in new_boundaries:
-                new_corr_df, new_corr = calc_tad_coexp(new_chr, new_start, new_end, gene_loc_data, tpm)
-                corr.append(new_corr)
-            tad_location = "{}_{}-{}".format(tad_chr, tad_start, tad_end)
-            # plot_tad_heatmap(tad_location, tad_corr_df)
-            # plot_corr_distance(tad_location, np.array(distances)/1000 , corr)
-
+        sliding_windows(tpm, gene_loc, tad, tg_dict, tad_data, gene_loc_data, tad_size=30, plot=True)
         # analysis 2: are highly correlated genes in the same TAD?
-        # get correlation matrix of all genes by chromosome
         all_genes_corr_df = tpm.transpose().corr()
-        highly_correlated_gene_pairs = high_low_corr_genes(all_genes_corr_df, 90)
-        pairs_in_tad = []
-        for pair in highly_correlated_gene_pairs:
-            if genes_in_same_tad(pair, tg_dict):
-                pairs_in_tad.append(pair)
-        print(len(pairs_in_tad) / len(highly_correlated_gene_pairs))
-
+        hc_genes_in_tads(chromosome, all_genes_corr_df, gene_loc, tad, tg_dict, plot=True)
         # analysis 3: correlation as a function of distance between genes
         corr_vs_dist(all_genes_corr_df, gene_loc, plot=True, title = f"Gene distance between high correlated and low correlated genes \n in {chromosome}", save=f"../results/corr_vs_dist_plot_{chromosome}.png")
 
