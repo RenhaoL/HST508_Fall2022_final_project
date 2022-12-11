@@ -273,7 +273,7 @@ def corr_vs_dist(corr_df, gene_loc_df, percentile = 90, random_sample_size=1000,
     low_corr_gene_pairs_df_random  = low_corr_gene_pairs_df.sample(n=random_sample_size, random_state=42)
     low_corr_gene_pairs_list_random = list(low_corr_gene_pairs_df_random.itertuples(index=False, name=None))
 
-    # extract the 
+    # extract the distance and correlations
     high_corr_gene_dis_chr = []
     high_corr_gene_dis_corr = []
 
@@ -288,15 +288,16 @@ def corr_vs_dist(corr_df, gene_loc_df, percentile = 90, random_sample_size=1000,
         low_corr_gene_dis_chr.append(calc_gene_dist(pair_of_genes, gene_loc_df))
         low_corr_gene_dis_corr.append(gene_dist_correlation(pair_of_genes, corr_df))
     
+    # add the distance and correlation to the dataframe
     high_corr_gene_pairs_df_random["gene_dis"] = high_corr_gene_dis_chr
     high_corr_gene_pairs_df_random["gene_dis_corr"] = high_corr_gene_dis_corr
     high_corr_gene_pairs_df_random = high_corr_gene_pairs_df_random.reset_index().drop("index", axis=1)
-
 
     low_corr_gene_pairs_df_random["gene_dis"] = low_corr_gene_dis_chr
     low_corr_gene_pairs_df_random["gene_dis_corr"] = low_corr_gene_dis_corr
     low_corr_gene_pairs_df_random = low_corr_gene_pairs_df_random.reset_index().drop("index", axis=1)
 
+    # for plotting
     if plot:
         combined_df = pd.concat([high_corr_gene_pairs_df_random[["gene_dis"]], low_corr_gene_pairs_df_random[["gene_dis"]]], axis=1)
         combined_df.columns = ["gene_dis_high_corr", "gene_dis_others"]
@@ -306,7 +307,6 @@ def corr_vs_dist(corr_df, gene_loc_df, percentile = 90, random_sample_size=1000,
         plt.savefig(save)
         plt.show()
         
-
     return high_corr_gene_pairs_df_random, low_corr_gene_pairs_df_random
 
 
