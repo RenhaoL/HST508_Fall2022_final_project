@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -c 16                               # Request one core
+#SBATCH -c 4                               # Request one core
 #SBATCH --job-name=HST508_final_project
 #SBATCH -t 0-6:00                         # Runtime in D-HH:MM format
 #SBATCH -p short                           # Partition to run in
