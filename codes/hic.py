@@ -186,7 +186,7 @@ def plot_tad_heatmap(title, corr_df):
     sns_plot.figure.savefig(title + "_heatmap.png")
     plt.show()
 
-def high_low_corr_genes(corr_df, percentile, high=True):
+def high_low_corr_genes(corr_df, percentile=90, high=True):
     """
     if high, return all gene pairs greater than percentile
     if low, return all gene pairs less than percentile
@@ -280,7 +280,7 @@ def main():
         # analysis 2: are highly correlated genes in the same TAD?
         # get correlation matrix of all genes by chromosome
         all_genes_corr_df = tpm.transpose().corr()
-        highly_correlated_gene_pairs = get_highly_correlated_genes(all_genes_corr_df)
+        highly_correlated_gene_pairs = high_low_corr_genes(all_genes_corr_df, 90)
         pairs_in_tad = []
         for pair in highly_correlated_gene_pairs:
             if genes_in_same_tad(pair, tg_dict):
