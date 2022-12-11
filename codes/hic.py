@@ -166,12 +166,11 @@ def plot_tad_heatmap(title, corr_df):
     """
     plot heatmap of gene correlation within a TAD
     """
-    sns.heatmap(corr_df)
     sns_plot = sns.clustermap(corr_df)
     sns_plot.figure.savefig(title + "_heatmap.png")
     plt.show()
 
-def get_highly_correlated_genes(corr_df, percentile=90):
+def get_highly_correlated_genes(corr_df, percentile=99):
     """
     given a correlation dataframe, return a list of the most highly correlated gene pairs.
     """
@@ -224,9 +223,9 @@ def main():
 
     chromosome_list = ['chr'+str(i+1) for i in range(19)]
     
-    # analysis 1: correlation vs sliding windows
     for chromosome in chromosome_list:
         tpm, gene_loc, tad = get_genes_from_chromosome(chromosome,norm_tpm,tad_data,gene_loc_data)
+        # analysis 1: correlation vs sliding windows
         for t in tad.index:
             if t not in tg_dict.keys():
                 continue
