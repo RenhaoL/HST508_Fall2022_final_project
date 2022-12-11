@@ -6,6 +6,7 @@ import seaborn as sns
 from scipy.stats import zscore
 import argparse
 import itertools
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser(description="TAD analysis")
 
@@ -248,6 +249,68 @@ def genes_in_same_tad(gene_pair,tg_dict,return_false_if_same_genes=True):
                 return False
     return False
 
+
+def corr_vs_dist(corr_df, gene_loc_df, percentile = 90, random_sample_size=1000, plot=False, title="Gene distance between high correlated and low correlated genes",save="../results/corr_vs_dist_plot.png", **kwargs):
+    
+    """compare the genetic distance vs. the gene correlation by random sample 1000 genes from all correlations.
+        **kwargs will be passed down to pd.plot.hist()
+
+    Returns:
+        the high correlated and other genes pairs with correlation and genetic distance. 
+    """
+    
+    # calculate the highly correlated genes
+    high_corr_gene_pairs = high_low_corr_genes(corr_df, percentile=percentile)
+    low_corr_gene_pairs = high_low_corr_genes(corr_df, percentile=percentile, high=False)
+    
+    high_corr_gene_pairs_df = pd.DataFrame(high_corr_gene_pairs, columns=["gene1", "gene2"])
+    low_corr_gene_pairs_df  = pd.DataFrame(low_corr_gene_pairs, columns=["gene1", "gene2"])
+
+    # random sample genes from each category (highly and other correlated)
+    high_corr_gene_pairs_df_random = high_corr_gene_pairs_df.sample(n=random_sample_size, random_state=42)
+    high_corr_gene_pairs_list_random = list(high_corr_gene_pairs_df_random.itertuples(index=False, name=None))
+
+    low_corr_gene_pairs_df_random  = low_corr_gene_pairs_df.sample(n=random_sample_size, random_state=42)
+    low_corr_gene_pairs_list_random = list(low_corr_gene_pairs_df_random.itertuples(index=False, name=None))
+
+    # extract the distance and correlations
+    high_corr_gene_dis_chr = []
+    high_corr_gene_dis_corr = []
+
+    for pair_of_genes in tqdm(high_corr_gene_pairs_list_random):
+        high_corr_gene_dis_chr.append(calc_gene_dist(pair_of_genes, gene_loc_df))
+        high_corr_gene_dis_corr.append(gene_dist_correlation(pair_of_genes, corr_df))
+    
+    low_corr_gene_dis_chr = []
+    low_corr_gene_dis_corr = []
+
+    for pair_of_genes in tqdm(low_corr_gene_pairs_list_random):
+        low_corr_gene_dis_chr.append(calc_gene_dist(pair_of_genes, gene_loc_df))
+        low_corr_gene_dis_corr.append(gene_dist_correlation(pair_of_genes, corr_df))
+    
+    # add the distance and correlation to the dataframe
+    high_corr_gene_pairs_df_random["gene_dis"] = high_corr_gene_dis_chr
+    high_corr_gene_pairs_df_random["gene_dis_corr"] = high_corr_gene_dis_corr
+    high_corr_gene_pairs_df_random = high_corr_gene_pairs_df_random.reset_index().drop("index", axis=1)
+
+    low_corr_gene_pairs_df_random["gene_dis"] = low_corr_gene_dis_chr
+    low_corr_gene_pairs_df_random["gene_dis_corr"] = low_corr_gene_dis_corr
+    low_corr_gene_pairs_df_random = low_corr_gene_pairs_df_random.reset_index().drop("index", axis=1)
+
+    # for plotting
+    if plot:
+        combined_df = pd.concat([high_corr_gene_pairs_df_random[["gene_dis"]], low_corr_gene_pairs_df_random[["gene_dis"]]], axis=1)
+        combined_df.columns = ["gene_dis_high_corr", "gene_dis_others"]
+        combined_df.plot.hist(alpha=0.5, **kwargs)
+        plt.title(title)
+        plt.xlabel("genetic distance (bp)")
+        plt.savefig(save)
+        plt.show()
+        
+    return high_corr_gene_pairs_df_random, low_corr_gene_pairs_df_random
+
+
+
 def main():
     # read in data
     tpm_data, gene_loc_data, tad_data = extract_data(args.data_path, args.gene_loc_path, args.tad_path)
@@ -286,9 +349,9 @@ def main():
             if genes_in_same_tad(pair, tg_dict):
                 pairs_in_tad.append(pair)
         print(len(pairs_in_tad) / len(highly_correlated_gene_pairs))
-        break
 
         # analysis 3: correlation as a function of distance between genes
+        corr_vs_dist(all_genes_corr_df, gene_loc, plot=True, title = f"Gene distance between high correlated and low correlated genes \n in {chromosome}", save=f"../results/corr_vs_dist_plot_{chromosome}.png")
 
 if __name__ == "__main__":
     main()
