@@ -13,11 +13,21 @@ import warnings
 parser = argparse.ArgumentParser(description="TAD analysis")
 
 # get inputs using parser
+parser.add_argument('--run_analysis1',type=bool,default=False)
+parser.add_argument('--run_analysis2',type=bool,default=False)
+parser.add_argument('--run_analysis3',type=bool,default=False)
+parser.add_argument('--run_analysis4',type=bool,default=False)
+
 parser.add_argument('--data_path', type=str, default="../data/ENCODE_bulk_rna_seq.csv")
 parser.add_argument('--gene_loc_path', type=str, default="../data/gene_locations.tsv")
 parser.add_argument('--tad_path', type=str, default="../data/TAD_strong_boundary_start_end.csv")
 
+parser.add_argument('--min_genes_in_tad',type=int,default=30)
+
 args = parser.parse_args()
+
+if args.run_analysis4:
+    args.run_analysis3=True
 
 def extract_data(data_path,gene_loc_path,tad_path,hivar_pctl=None,excl_chrom=['chrM','chrX','chrY']):
     """
@@ -53,7 +63,7 @@ def extract_data(data_path,gene_loc_path,tad_path,hivar_pctl=None,excl_chrom=['c
     gloc_filtered = gloc_filtered.loc[gene_list]
     return sc_df_filtered, gloc_filtered, tad_filtered
 
-def filter_genes_by_variance(sc_df,percentile): # not tested
+def filter_genes_by_variance(sc_df,percentile):
     """
     filters a TPM (genes x tissue !!!!) dataset by highest percentile of variance across tissue/samples
 
@@ -119,18 +129,18 @@ def get_chr_lengths(path_to_file="../data/chr_lengths"):
     infile = open(path_to_file)
     for line in infile:
         line = line.strip().split()
-        chr = line[0]
+        chrom = line[0]
         length = int(line[1])
-        chr_lengths[chr] = length
+        chr_lengths[chrom] = length
     infile.close()
     return chr_lengths
 
-def slide_boundary(chr, start, end, num_iter=5, step_size=10000):
+def slide_boundary(chrom, start, end, num_iter=5, step_size=10000):
     """
     shift a TAD boundary left or right [num_iter] times while retaining the size of the TAD. 
     return a list of new boundaries and the corresponding distances from the original TAD.
     """
-    chr_length = get_chr_lengths()[chr]
+    chr_length = get_chr_lengths()[chrom]
     # default: shift right
     direction = 1
     # TAD at end: shift left
@@ -142,17 +152,17 @@ def slide_boundary(chr, start, end, num_iter=5, step_size=10000):
     distance_from_origin = step_size
     for i in range(num_iter):
         new_start, new_end = start + step_size, end + step_size
-        new_boundaries.append((chr, new_start, new_end))
+        new_boundaries.append((chrom, new_start, new_end))
         distances.append(distance_from_origin)
         start, end = new_start, new_end
         distance_from_origin += step_size
     return new_boundaries, distances
 
-def calc_tad_coexp(chr, start, end, gene_loc, tpm):
+def calc_tad_coexp(chrom, start, end, gene_loc, tpm):
     """
     calculate the average pairwise correlation coefficient for a given genomic region
     """
-    genes = get_genes_in_interval(chr, start, end, gene_loc)
+    genes = get_genes_in_interval(chrom, start, end, gene_loc)
     if len(genes) == 0:
         return None, 0
     tpm_subset = tpm.loc[genes,:]
@@ -160,7 +170,7 @@ def calc_tad_coexp(chr, start, end, gene_loc, tpm):
     avg_corr = np.mean(corr_df.to_numpy())
     return corr_df, avg_corr
 
-def high_low_corr_genes(corr_df, percentile=90, high=True):
+def high_low_corr_genes(corr_df, percentile=90):
     """
     if high, return all gene pairs greater than percentile
     if low, return all gene pairs less than percentile
@@ -170,16 +180,15 @@ def high_low_corr_genes(corr_df, percentile=90, high=True):
     threshold = np.percentile(values, percentile)
     all_pairs = get_gene_pairs(corr_df.index)
     correlated_gene_pairs = []
+    low_corr_gene_pairs = []
     for pair in all_pairs:
         gene1, gene2 = pair[0], pair[1]
         corr = corr_df.loc[gene1,gene2]
-        if high:
-            if corr > threshold and corr < 0.99:
-                correlated_gene_pairs.append((gene1,gene2))
-        else:
-            if corr < threshold:
-                correlated_gene_pairs.append((gene1,gene2))
-    return correlated_gene_pairs
+        if corr > threshold and corr < 1:
+            correlated_gene_pairs.append(pair)
+        else: #corr <= threshold:
+            low_corr_gene_pairs.append(pair)
+    return correlated_gene_pairs, low_corr_gene_pairs
 
 def calc_gene_dist(same_chrom_gene_pair,gene_loc):
     """
@@ -230,8 +239,7 @@ def corr_vs_dist(corr_df, gene_loc_df, percentile = 90, random_sample_size=1000,
     """
     
     # calculate the highly correlated genes
-    high_corr_gene_pairs = high_low_corr_genes(corr_df, percentile=percentile)
-    low_corr_gene_pairs = high_low_corr_genes(corr_df, percentile=percentile, high=False)
+    high_corr_gene_pairs, low_corr_gene_pairs = high_low_corr_genes(corr_df, percentile=percentile)
     
     high_corr_gene_pairs_df = pd.DataFrame(high_corr_gene_pairs, columns=["gene1", "gene2"])
     low_corr_gene_pairs_df  = pd.DataFrame(low_corr_gene_pairs, columns=["gene1", "gene2"])
@@ -314,7 +322,7 @@ def hc_genes_in_tads(chromosome, all_genes_corr_df, gene_loc, tad, tg_dict, plot
     plot distribution of HC gene pair proportion in TAD vs random gene pairs
     """
     random.seed(10)
-    hc_gene_pairs = high_low_corr_genes(all_genes_corr_df, 90)
+    hc_gene_pairs, _ = high_low_corr_genes(all_genes_corr_df, 90)
     tad_prop_hc_genes = []
     random_prop_hc_genes = []
 
@@ -342,11 +350,10 @@ def hc_genes_in_tads(chromosome, all_genes_corr_df, gene_loc, tad, tg_dict, plot
     
     return df
     
-def sliding_windows(tpm, gene_loc, tad, tad_data, gene_loc_data, tad_size=30, plot=True):
+def sliding_windows(tpm, gene_loc, tad, tg_dict, plot=True):
     """
     plot lineplot and heatmap of sliding windows
     """
-    tg_dict = tad_gene_dict(tad_data, gene_loc_data, tad_size)
 
     for t in tad.index:
         if t not in tg_dict.keys():
@@ -374,6 +381,49 @@ def sliding_windows(tpm, gene_loc, tad, tad_data, gene_loc_data, tad_size=30, pl
             sns_plot = sns.clustermap(tad_corr_df)
             sns_plot.figure.savefig(f"../results/{tad_location}_heatmap.png")
 
+def gene_corr_dictionary(tpm):
+    gcorr_dict = {}
+    corr_matrix = tpm.T.corr()
+    for gene_pair in itertools.combinations(tpm.index,2):
+        gcorr_dict[gene_pair] = corr_matrix[gene_pair[0]][gene_pair[1]]
+    return gcorr_dict
+def gene_tad_dict(gene_pairs, tg_dict):
+    """
+    Returns dictionary indicating whether a gene pair shares a TAD
+    e.g. {(gene1, gene2) : True/False}
+    """
+    gt_dict = {}
+    for pair in gene_pairs:
+        gt_dict[pair] = genes_in_same_tad(pair,tg_dict)
+    return gt_dict
+def gene_corr_permutation_test(gc_dict, tg_dict, percentile=90, n_iter=1000, rand_seed=1):
+    """
+    Given a dictionary of gene pairs mapping to correlations, get top 90th percentile
+    gc_dict should not have autocorrelation key-value pairs
+    """
+    np.random.seed(rand_seed)
+    
+    correlations = list(gc_dict.values())
+    gpairs = list(gc_dict.keys())
+    threshold = np.percentile(correlations, percentile)
+    hi_corr_pairs = [gp for gp in gpairs if gc_dict[gp]>threshold]
+    gt_dict = gene_tad_dict(gpairs, tg_dict)
+    
+    if sum(gt_dict.values()) == 0:
+        return None # everything will just be 0; no point
+    
+    proportion = sum([gt_dict[p] for p in hi_corr_pairs])/len(hi_corr_pairs)
+    
+    sample_size = len(hi_corr_pairs)
+    proportions = np.ones(n_iter) # proportion in TAD
+    
+    for i in range(n_iter):
+        sample = random.sample(gpairs,sample_size)
+        proportions[i] = sum(gt_dict[gpair] for gpair in sample)/sample_size
+    
+    return sum(proportions>proportion)/n_iter # p value
+
+
 def main():
     # ignore warnings
     warnings.filterwarnings("ignore")
@@ -382,27 +432,40 @@ def main():
     # normalize tpm data
     norm_tpm = log2norm_tpm(tpm_data)
     # make dictionaries
-    cg_dict = chromosome_gene_dict(gene_loc_data)
-    tg_dict = tad_gene_dict(tad_data,gene_loc_data)
+    #cg_dict = chromosome_gene_dict(gene_loc_data)
+    tg_dict = tad_gene_dict(tad_data,gene_loc_data,filter_bar=args.min_genes_in_tad)
 
     chromosome_list = ['chr'+str(i+1) for i in range(19)]
     
     for chromosome in chromosome_list:
         print(f"Processing {chromosome}...")
         tpm, gene_loc, tad = get_genes_from_chromosome(chromosome,norm_tpm,tad_data,gene_loc_data)
-        # analysis 1: correlation vs sliding windows
-        sliding_windows(tpm, gene_loc, tad, tad_data, gene_loc_data, tad_size=30, plot=True)
-        print("Analysis 1 done.")
-        # analysis 2: are highly correlated genes in the same TAD?
         all_genes_corr_df = tpm.transpose().corr()
-        analysis2_df = hc_genes_in_tads(chromosome, all_genes_corr_df, gene_loc, tad, tg_dict, plot=True)
-        analysis2_df.to_csv(f"../results/analysis2_{chromosome}_df.csv")
-        print("Analysis 2 done.")
+
+        # analysis 1: correlation vs sliding windows
+        if args.run_analysis1:
+            sliding_windows(tpm, gene_loc, tad, tg_dict, plot=True)
+            print("Analysis 1 done.")
+        # analysis 2: are highly correlated genes in the same TAD?
+        if args.run_analysis2:
+            analysis2_df = hc_genes_in_tads(chromosome, all_genes_corr_df, gene_loc, tad, tg_dict, plot=True)
+            analysis2_df.to_csv(f"../results/analysis2_{chromosome}_df.csv")
+            print("Analysis 2 done.")
         # analysis 3: correlation as a function of distance between genes
-        analysis3_high_corr_df, analysis3_other_corr_df = corr_vs_dist(all_genes_corr_df, gene_loc_data, plot=True, title = f"Gene distance between high correlated and low correlated genes \n in {chromosome}", save=f"../results/corr_vs_dist_plot_{chromosome}.png")
-        analysis3_high_corr_df.to_csv(f"../results/analysis3_{chromosome}_high_corr_df.csv")
-        analysis3_other_corr_df.to_csv(f"../results/analysis3_{chromosome}_other_corr_df.csv")
-        print(f"Analysis 3 done.")
+        if args.run_analysis3:
+            analysis3_high_corr_df, analysis3_other_corr_df = corr_vs_dist(all_genes_corr_df, gene_loc_data, plot=True, title = f"Gene distance between high correlated and low correlated genes \n in {chromosome}", save=f"../results/corr_vs_dist_plot_{chromosome}.png")
+            analysis3_high_corr_df.to_csv(f"../results/analysis3_{chromosome}_high_corr_df.csv")
+            analysis3_other_corr_df.to_csv(f"../results/analysis3_{chromosome}_other_corr_df.csv")
+            print(f"Analysis 3 done.")
+        # analysis 4: permutation test for highly correlated genes
+        if args.run_analysis4:
+            gc_dict = gene_corr_dictionary(tpm)
+            p_val = gene_corr_permutation_test(gc_dict, tg_dict)
+            with open("../results/pvalues.txt",'a') as f:
+                f.write(chromosome+"\t"+str(p_val))
+            f.close()
+            print(f"Analysis 4 done.")
+
 
 if __name__ == "__main__":
     main()
