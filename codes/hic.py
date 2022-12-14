@@ -26,8 +26,6 @@ parser.add_argument('--min_genes_in_tad',type=int,default=30)
 
 args = parser.parse_args()
 
-if args.run_analysis4:
-    args.run_analysis3=True
 
 def extract_data(data_path,gene_loc_path,tad_path,hivar_pctl=None,excl_chrom=['chrM','chrX','chrY']):
     """
